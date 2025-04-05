@@ -1,0 +1,24 @@
+name: Generators
+version: '1.0-SNAPSHOT'
+main: com.gungens.generators.Generators
+api-version: '1.21'
+author: GunGens
+description: Handles custom item-generating blocks for servers.
+
+commands:
+  generator:
+    description: Creates a new generator block.
+    usage: /generator <block>
+    permission: generators.admin
+    permission-message: §cYou do not have permission to use this command.
+
+  savegenerators:
+    description: Saves all generators to the database.
+    usage: /savegenerators
+    permission: generators.admin
+    permission-message: §cYou do not have permission to use this command.
+
+permissions:
+  generators.admin:
+    description: Allows access to all generator management commands.
+    default: op
