@@ -1,13 +1,18 @@
 package com.gungens.generators.cache;
 
 import com.gungens.generators.Generators;
+import com.gungens.generators.libs.InventoryBuilder;
 import com.gungens.generators.models.CommandState;
 import com.gungens.generators.models.Generator;
+import com.gungens.generators.models.InventoryState;
+import com.gungens.generators.models.PlayerQueueTrack;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -20,7 +25,7 @@ public class GeneratorCache {
 
     private final Set<String> dirtyGenerators = new HashSet<>();
     private final Set<String> removedGenerators = new HashSet<>();
-    private final HashMap<String, CommandState> playerChatCommandQueue = new HashMap<>();
+    private final HashMap<String, PlayerQueueTrack> playerChatCommandQueue = new HashMap<>();
 
 
     public Generator getGeneratorById(String id) {
@@ -79,19 +84,21 @@ public class GeneratorCache {
 
             addGenerator(generator, true);
         }
-        Bukkit.getScheduler().runTaskAsynchronously(Generators.instance, async -> {
 
-        });
        Bukkit.getLogger().info("Added " + generators.size() + " generators to the cache");
     }
 
     public void addPlayerToQueue(String uuid) {
-        playerChatCommandQueue.put(uuid, CommandState.WAITING);
+        playerChatCommandQueue.put(uuid, new PlayerQueueTrack());
     }
     public void removePlayerFromQueue(String uuid) {
         playerChatCommandQueue.remove(uuid);
     }
-    public void setPlayerCommandQueueState(String uuid, CommandState state) {
-        playerChatCommandQueue.put(uuid, state);
+    public void setPlayerCommandQueueState(String uuid, CommandState state, double interval) {
+        PlayerQueueTrack track = playerChatCommandQueue.get(uuid);
+        track.setState(state, interval);
+    }
+    public boolean isInCommandQueue(String uuid) {
+        return playerChatCommandQueue.containsKey(uuid);
     }
 }

@@ -161,14 +161,9 @@ public class GeneratorListeners implements Listener {
                     player.sendMessage(utils.format("&aUpdated show name state successfully"));
                 });
                 builder.setItem(27+6, GeneratorUIItems.SET_INTERVAL, handler -> {
+                    Player p = (Player) handler.getWhoClicked();
+                    GeneratorCache.instance.addPlayerToQueue(p.getUniqueId().toString());
 
-                    ItemStack currentItem = handler.getCurrentItem();
-                    ItemMeta meta = currentItem.getItemMeta();
-                    meta.setDisplayName(utils.format("&aSHOW NAME: "+generator.isNameVisible()));
-                    currentItem.setItemMeta(meta);
-
-                    GeneratorCache.instance.updateGenerator(generator);
-                    player.sendMessage(utils.format("&aUpdated show name state successfully"));
                 });
 
                 builder.setItem(35, GeneratorUIItems.SAVE_AND_CLOSE, handler -> {
