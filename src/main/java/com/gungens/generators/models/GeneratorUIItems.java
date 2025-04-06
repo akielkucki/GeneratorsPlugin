@@ -4,18 +4,19 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-public final class GeneratorUIItems {
+public class GeneratorUIItems {
 
-    public static final ItemStack CANCEL;
-    public static final ItemStack OK;
-    public static final ItemStack CLOSE_WITHOUT_SAVING;
-    public static final ItemStack SAVE_AND_CLOSE;
-    public static final ItemStack UI_ITEM;
-    public static final ItemStack SET_GLOWING;
-    public static final ItemStack TOGGLE_NAME;
-    public static final ItemStack SET_INTERVAL;
+    public final ItemStack CANCEL;
+    public final ItemStack OK;
+    public final ItemStack CLOSE_WITHOUT_SAVING;
+    public final ItemStack SAVE_AND_CLOSE;
+    public final ItemStack UI_ITEM;
+    public ItemStack SET_GLOWING;
+    public ItemStack TOGGLE_NAME;
+    public ItemStack SET_INTERVAL;
+    public ItemStack TOGGLE_HOLO;
 
-    static {
+    {
         UI_ITEM = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta uiMeta = UI_ITEM.getItemMeta();
         uiMeta.setDisplayName("§0");
@@ -40,25 +41,29 @@ public final class GeneratorUIItems {
         ItemMeta saveAndCloseMeta = SAVE_AND_CLOSE.getItemMeta();
         saveAndCloseMeta.setDisplayName("§aSave items and close");
         SAVE_AND_CLOSE.setItemMeta(saveAndCloseMeta);
+    }
+    public GeneratorUIItems(Generator generator) {
+
 
         SET_GLOWING = new ItemStack(Material.NETHER_STAR);
         ItemMeta setGlowingItemMeta = SET_GLOWING.getItemMeta();
-        setGlowingItemMeta.setDisplayName("§aGLOWING: false");
+        setGlowingItemMeta.setDisplayName("§aGLOWING: "+generator.isGlowing());
         SET_GLOWING.setItemMeta(setGlowingItemMeta);
 
         TOGGLE_NAME = new ItemStack(Material.OAK_SIGN);
         ItemMeta toggleNameItemMeta = TOGGLE_NAME.getItemMeta();
-        toggleNameItemMeta.setDisplayName("§aSHOW NAME: false");
+        toggleNameItemMeta.setDisplayName("§aSHOW NAME: "+generator.isNameVisible());
         TOGGLE_NAME.setItemMeta(toggleNameItemMeta);
 
         SET_INTERVAL = new ItemStack(Material.CLOCK);
         ItemMeta setIntervalItemMeta = SET_INTERVAL.getItemMeta();
-        setIntervalItemMeta.setDisplayName("§dSET INTERVAL: 1");
+        setIntervalItemMeta.setDisplayName("§dINTERVAL: "+generator.getTickTime());
         SET_INTERVAL.setItemMeta(setIntervalItemMeta);
-    }
 
-    private GeneratorUIItems() {
-        // prevent instantiation
+        TOGGLE_HOLO = new ItemStack(Material.ARMOR_STAND);
+        ItemMeta toggleHoloItemMeta = TOGGLE_HOLO.getItemMeta();
+        toggleHoloItemMeta.setDisplayName("§eHOLOGRAM: "+generator.isHologramVisible());
+        TOGGLE_HOLO.setItemMeta(toggleHoloItemMeta);
     }
 }
 

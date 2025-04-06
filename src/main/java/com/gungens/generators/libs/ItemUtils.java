@@ -12,7 +12,7 @@ import java.util.List;
 import static com.gungens.generators.libs.CentralKeys.GEN_ID;
 
 public class ItemUtils {
-    public static ItemUtils instance = new ItemUtils();
+    public static final ItemUtils instance = new ItemUtils();
     private final MessageUtils utils = new MessageUtils();
 
     public ItemStack createGeneratorItem(Material material, String ownerName, Generator generator) {

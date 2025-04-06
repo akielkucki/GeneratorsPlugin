@@ -1,6 +1,6 @@
 package com.gungens.generators.models;
 
-import com.gungens.generators.Generators;
+import com.gungens.generators.libs.MessageUtils;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -14,8 +14,10 @@ import org.bukkit.util.io.BukkitObjectOutputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.*;
-import java.util.logging.Level;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
 
 @DatabaseTable(tableName = "generators")
 public class Generator {
@@ -37,13 +39,12 @@ public class Generator {
     private transient List<ItemStack> dropItems;
 
     @DatabaseField(columnName = "tick_time")
-    private double tickTime;
+    private double tickTime = 1.0;
 
     @DatabaseField(columnName = "multiplier")
     private double multiplier;
 
-    @DatabaseField(columnName = "is_admin")
-    private boolean isAdminGenerator;
+    private transient boolean isAdminGenerator;
 
     @DatabaseField(columnName = "owner_uuid")
     private String ownerUUID;
@@ -51,10 +52,62 @@ public class Generator {
 
     private int lastDropIndex = -1;
 
-    @DatabaseField(columnName = "is_glowing", dataType = DataType.BOOLEAN)
+    @DatabaseField(columnName = "glowing", dataType = DataType.BOOLEAN)
     private boolean isGlowing;
-    @DatabaseField(columnName = "is_name_visible", dataType = DataType.BOOLEAN)
+    @DatabaseField(columnName = "name_visible", dataType = DataType.BOOLEAN)
     private boolean isNameVisible;
+    @DatabaseField(columnName = "holo_visible", dataType = DataType.BOOLEAN)
+    private boolean isHologramVisible;
+
+    private transient long lastDropTime;
+    private transient double currentProgress = 0.0;
+
+    public void updateProgress(double currentTicks) {
+        if (tickTime <= 0) {
+            currentProgress = 0.0;
+        } else {
+            currentProgress = currentTicks / tickTime;
+        }
+    }
+
+    public double getProgressPercentage() {
+        return currentProgress;
+    }
+
+    public void updateLastDropTime() {
+        this.lastDropTime = System.currentTimeMillis();
+    }
+
+    public String getHologramName() {
+        List<ItemStack> items = getDropItems();
+        if (items == null || items.isEmpty()) {
+            return "Generator";
+        }
+        ItemStack item = items.get(0);
+        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+            return item.getItemMeta().getDisplayName() + " Generator";
+        } else {
+            String itemType = item.getType().name().toLowerCase().replace("_", " ");
+            return MessageUtils.instance.capitalizeFirstLetter(itemType) + " Generator";
+        }
+    }
+
+    public int getDropIntervalTicks() {
+        return (int) tickTime;
+    }
+
+    public void setDropIntervalTicks(int dropIntervalTicks) {
+        this.tickTime = dropIntervalTicks;
+    }
+
+    public long getLastDropTime() {
+        return lastDropTime;
+    }
+
+    public void setLastDropTime(long lastDropTime) {
+        this.lastDropTime = lastDropTime;
+    }
+
 
     public Generator() {}
 
@@ -188,7 +241,6 @@ public class Generator {
                 throw new RuntimeException("Failed to serialize ItemStack", e);
             }
         }
-        System.out.println(serialized.toString());
         return serialized.toString();
     }
 
@@ -212,13 +264,12 @@ public class Generator {
 
         return items;
     }
-    /**
-     *   continue refactoring classes to work with array of item stacks
-     *   Gui to add/edit multiple items to the list
-     *   Ensure items are serialized properly
-     *   Tick intervals for generators are fixed
-     *   Each generator has a hologram above it
-     *   Each generator has a loading bar above it
-     */
 
+    public boolean isHologramVisible() {
+        return isHologramVisible;
+    }
+
+    public void setHologramVisible(boolean hologramVisible) {
+        isHologramVisible = hologramVisible;
+    }
 }

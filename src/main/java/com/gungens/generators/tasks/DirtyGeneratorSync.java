@@ -11,7 +11,7 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 
 public class DirtyGeneratorSync implements Runnable {
-    DbManager dbManager = Generators.instance.getDbManager();
+    final DbManager dbManager = Generators.instance.getDbManager();
     private boolean saved;
     public DirtyGeneratorSync() {
         saved = false;

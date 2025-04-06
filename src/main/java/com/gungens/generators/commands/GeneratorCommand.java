@@ -1,6 +1,5 @@
 package com.gungens.generators.commands;
 
-import com.gungens.generators.cache.GeneratorCache;
 import com.gungens.generators.libs.ItemUtils;
 import com.gungens.generators.libs.MessageUtils;
 import com.gungens.generators.models.Generator;
@@ -13,7 +12,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 

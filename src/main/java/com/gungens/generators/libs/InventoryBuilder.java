@@ -1,7 +1,6 @@
 package com.gungens.generators.libs;
 
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -13,7 +12,7 @@ import java.util.function.Consumer;
 /**
  * A builder class to easily create GUI inventories for managing generator blocks.
  * This builder supports setting items with optional click actions.
- *
+ * <p>
  * Usage:
  * <pre>
  *   Inventory gui = new InventoryBuilder(27, "Generator Manager")
@@ -63,6 +62,9 @@ public class InventoryBuilder {
     public InventoryBuilder addItem(ItemStack item) {
         inventory.addItem(item);
         return this;
+    }
+    public ItemStack getItem(int slot) {
+        return inventory.getItem(slot);
     }
 
     public boolean isInRegisteredInventories(Inventory inventory) {

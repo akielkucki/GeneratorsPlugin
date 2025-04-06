@@ -1,31 +1,52 @@
 package com.gungens.generators.cache;
 
-import com.gungens.generators.Generators;
 import com.gungens.generators.libs.InventoryBuilder;
 import com.gungens.generators.models.CommandState;
 import com.gungens.generators.models.Generator;
-import com.gungens.generators.models.InventoryState;
 import com.gungens.generators.models.PlayerQueueTrack;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class GeneratorCache {
-    public static GeneratorCache instance = new GeneratorCache();
+    public static final GeneratorCache instance = new GeneratorCache();
+    /**
+     */
     private final Map<String, Generator> generators = new HashMap<>();
+
+    /**
+     */
     private final Map<Location, String> locations = new HashMap<>();
 
+    /**
+     */
     private final Set<String> dirtyGenerators = new HashSet<>();
+
+    /**
+     */
     private final Set<String> removedGenerators = new HashSet<>();
-    private final HashMap<String, PlayerQueueTrack> playerChatCommandQueue = new HashMap<>();
+
+    /**
+     */
+    private final Map<String, PlayerQueueTrack> playerChatCommandQueue = new HashMap<>();
+
+    /**
+     */
+    private final Map<String, InventoryBuilder> currentInventoryTrack = new HashMap<>();
+
+    /**
+     */
+    private final Map<String, String> currentGeneratorTrack = new HashMap<>();
+
+    /**
+     */
+    private final Map<String, Boolean> generatorHasHologram = new HashMap<>(); //Make methods needed for this
+
+    /**
+     */
+    private final Map<String, Boolean> generatorHasProgressBar = new HashMap<>(); //Make methods needed for this
 
 
     public Generator getGeneratorById(String id) {
@@ -88,11 +109,15 @@ public class GeneratorCache {
        Bukkit.getLogger().info("Added " + generators.size() + " generators to the cache");
     }
 
-    public void addPlayerToQueue(String uuid) {
+    public void addPlayerToQueue(String uuid, InventoryBuilder builder, String generatorId) {
         playerChatCommandQueue.put(uuid, new PlayerQueueTrack());
+        currentInventoryTrack.put(uuid,builder);
+        currentGeneratorTrack.put(uuid,generatorId);
     }
     public void removePlayerFromQueue(String uuid) {
         playerChatCommandQueue.remove(uuid);
+        currentInventoryTrack.remove(uuid);
+        currentGeneratorTrack.remove(uuid);
     }
     public void setPlayerCommandQueueState(String uuid, CommandState state, double interval) {
         PlayerQueueTrack track = playerChatCommandQueue.get(uuid);
@@ -100,5 +125,82 @@ public class GeneratorCache {
     }
     public boolean isInCommandQueue(String uuid) {
         return playerChatCommandQueue.containsKey(uuid);
+    }
+    public InventoryBuilder getCurrentInventoryTrack(String uuid) {
+        return currentInventoryTrack.get(uuid);
+    }
+    public String getCurrentGeneratorTrack(String uuid) {
+        return currentGeneratorTrack.get(uuid);
+    }
+
+    /**
+     * Sets whether a generator should display a hologram.
+     *
+     * @param generatorId The ID of the generator
+     * @param enabled True to enable the hologram, false to disable
+     */
+    public void setGeneratorHologram(String generatorId, boolean enabled) {
+        if (!generators.containsKey(generatorId)) {
+            return;
+        }
+
+        generatorHasHologram.put(generatorId, enabled);
+        dirtyGenerators.add(generatorId);
+    }
+
+    /**
+     * Gets whether a generator has a hologram enabled.
+     *
+     * @param generatorId The ID of the generator
+     * @return True if the hologram is enabled, false otherwise
+     */
+    public boolean hasGeneratorHologram(String generatorId) {
+        if (!generators.containsKey(generatorId)) {
+            return false;
+        }
+
+        Boolean hasHologram = generatorHasHologram.get(generatorId);
+        return hasHologram != null && hasHologram;
+    }
+
+    /**
+     * Sets whether a generator should display a progress bar.
+     *
+     * @param generatorId The ID of the generator
+     * @param enabled True to enable the progress bar, false to disable
+     */
+    public void setGeneratorProgressBar(String generatorId, boolean enabled) {
+        if (!generators.containsKey(generatorId)) {
+            return;
+        }
+
+        generatorHasProgressBar.put(generatorId, enabled);
+        dirtyGenerators.add(generatorId);
+    }
+
+    /**
+     * Gets whether a generator has a progress bar enabled.
+     *
+     * @param generatorId The ID of the generator
+     * @return True if the progress bar is enabled, false otherwise
+     */
+    public boolean hasGeneratorProgressBar(String generatorId) {
+        if (!generators.containsKey(generatorId)) {
+            return false;
+        }
+
+        Boolean hasProgressBar = generatorHasProgressBar.get(generatorId);
+        return hasProgressBar != null && hasProgressBar;
+    }
+
+    /**
+     * Enables or disables both hologram and progress bar for a generator.
+     *
+     * @param generatorId The ID of the generator
+     * @param enabled True to enable both, false to disable both
+     */
+    public void setGeneratorVisuals(String generatorId, boolean enabled) {
+        setGeneratorHologram(generatorId, enabled);
+        setGeneratorProgressBar(generatorId, enabled);
     }
 }
