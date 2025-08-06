@@ -1,6 +1,7 @@
 package com.gungens.generators;
 
 import com.gungens.generators.cache.GeneratorCache;
+import com.gungens.generators.commands.BreakableGeneratorCommand;
 import com.gungens.generators.commands.GeneratorCommand;
 import com.gungens.generators.commands.SaveGeneratorsCommand;
 import com.gungens.generators.db.DbManager;
@@ -23,10 +24,14 @@ import java.util.logging.Level;
 public final class Generators extends JavaPlugin {
     public static Generators instance;
     private DbManager dbManager;
+    public int generatorsTask;
     @Override
     public void onEnable() {
         instance = this;
+
         dbManager = new DbManager();
+        GeneratorService.getInstance().clearExistingArmorStands();
+
         try {
             dbManager.loadGenerators();
         } catch (SQLException e) {
@@ -36,13 +41,24 @@ public final class Generators extends JavaPlugin {
         }
 
         initializeGeneratorHolograms();
-        GeneratorService.getInstance().clearExistingArmorStands();
+
 
         registerListeners("com.gungens.generators.listeners");
+
         getCommand("generator").setExecutor(new GeneratorCommand());
+        getCommand("breakablegenerator").setExecutor(new BreakableGeneratorCommand());
+
         getCommand("savegenerators").setExecutor(new SaveGeneratorsCommand());
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(this,new GeneratorTask(), 0L, 1L);
-        Bukkit.getScheduler().runTaskTimerAsynchronously(this, new DirtyGeneratorSync(), 20 * 20, 20 * 10); //every 60 seconds
+        if (Bukkit.getOnlinePlayers().isEmpty()) {
+            Bukkit.getLogger().info("[Generators] No players online, exiting task.");
+            generatorsTask = -1;
+        } else {
+            generatorsTask = Bukkit.getScheduler().scheduleSyncRepeatingTask(this,new GeneratorTask(), 0L, 1L);
+        }
+
+        Bukkit.getScheduler().runTaskTimerAsynchronously(this, new DirtyGeneratorSync(), 20 * 20, 20 * 60);
+
+        saveDefaultConfig();
     }
 
     @Override
@@ -81,5 +97,8 @@ public final class Generators extends JavaPlugin {
                 generator.updateLastDropTime();
             }
         }
+    }
+    public void setTaskId(int taskId) {
+        this.generatorsTask = taskId;
     }
 }

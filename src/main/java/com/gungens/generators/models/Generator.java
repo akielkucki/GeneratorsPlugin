@@ -1,5 +1,6 @@
 package com.gungens.generators.models;
 
+import com.gungens.generators.libs.GeneratorUtils;
 import com.gungens.generators.libs.MessageUtils;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
@@ -139,7 +140,7 @@ public class Generator {
 
     public List<ItemStack> getDropItems() {
         if (dropItems == null && dropItemsSerialized != null) {
-            dropItems = deserializeItemStacks(dropItemsSerialized);
+            dropItems = GeneratorUtils.instance.deserializeItemStacks(dropItemsSerialized);
         }
         return dropItems;
     }
@@ -151,7 +152,7 @@ public class Generator {
 
     public void setDropItems(List<ItemStack> dropItems) {
         this.dropItems = dropItems;
-        this.dropItemsSerialized = serializeItemStacks(dropItems);
+        this.dropItemsSerialized = GeneratorUtils.serializeItemStacks(dropItems);
     }
     public void addItemToDrop(ItemStack item) {
         dropItems.add(item);
@@ -228,42 +229,8 @@ public class Generator {
         return new Location(world, x, y, z);
     }
 
-    public static String serializeItemStacks(List<ItemStack> items) {
-        StringBuilder serialized = new StringBuilder();
-        for (ItemStack itemStack : items) {
-            try {
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream);
-                dataOutput.writeObject(itemStack);
-                dataOutput.close();
-                serialized.append(Base64.getEncoder().encodeToString(outputStream.toByteArray())).append(';');
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to serialize ItemStack", e);
-            }
-        }
-        return serialized.toString();
-    }
 
-    public static List<ItemStack> deserializeItemStacks(String base64arr) {
-        String[] parts = base64arr.split(";");
-        List<ItemStack> items = new ArrayList<>();
 
-        for (String part : parts) {
-            if (part.isEmpty()) continue;
-            try {
-                byte[] data = Base64.getDecoder().decode(part);
-                ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
-                BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream);
-                ItemStack item = (ItemStack) dataInput.readObject();
-                dataInput.close();
-                items.add(item);
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to deserialize ItemStack", e);
-            }
-        }
-
-        return items;
-    }
 
     public boolean isHologramVisible() {
         return isHologramVisible;

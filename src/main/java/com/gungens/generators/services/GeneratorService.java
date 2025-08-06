@@ -3,15 +3,12 @@ package com.gungens.generators.services;
 import com.gungens.generators.Generators;
 import com.gungens.generators.libs.MessageUtils;
 import com.gungens.generators.managers.HologramManager;
+import com.gungens.generators.models.BreakableGenerator;
 import com.gungens.generators.models.Generator;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
-import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Item;
+import org.bukkit.*;
+import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
+
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
 
@@ -22,7 +19,9 @@ public class GeneratorService {
     private static final GeneratorService instance = new GeneratorService();
 
     public static GeneratorService getInstance() {
+
         return instance;
+
     }
 
     public void spawnItem(Generator generator) {
@@ -50,6 +49,32 @@ public class GeneratorService {
         item.setGlowing(generator.isGlowing());
         item.setCustomNameVisible(generator.isNameVisible());
         generator.updateLastDropTime();
+    }
+    public void spawnItem(BreakableGenerator breakableGenerator) {
+        Location location = breakableGenerator.getLocation();
+        ItemStack dropItem = breakableGenerator.getDropItems().get(breakableGenerator.getIndex());
+        if (location == null) {
+            return;
+        }
+        if (dropItem == null) {
+            Bukkit.getLogger().log(Level.SEVERE, "Item at generator " + breakableGenerator.getId() + " is null!");
+            return;
+        }
+
+        Location spawnLoc = location.clone().add(0.5, 1.2, 0.5);
+        Item item = location.getWorld().dropItem(spawnLoc, dropItem);
+        item.setVelocity(new Vector(0, 0, 0));
+        if (item.getItemStack().hasItemMeta() &&
+                item.getItemStack().getItemMeta().hasDisplayName()) {
+            item.setCustomName(MessageUtils.instance.format(item.getItemStack().getItemMeta().getDisplayName()));
+        } else {
+            item.setCustomName(
+                    MessageUtils.instance.capitalizeFirstLetter(item.getItemStack().getType().name().toLowerCase())
+            );
+        }
+        item.setGlowing(breakableGenerator.isGlowing());
+        item.setCustomNameVisible(breakableGenerator.isNameVisible());
+        breakableGenerator.setIndex();
     }
 
     public void spawnHologramIfNotPresent(Generator generator) {

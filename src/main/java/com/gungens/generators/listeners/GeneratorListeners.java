@@ -1,18 +1,18 @@
 package com.gungens.generators.listeners;
 
+import com.google.gson.Gson;
+import com.gungens.generators.cache.BreakableGeneratorCache;
 import com.gungens.generators.cache.GeneratorCache;
 import com.gungens.generators.libs.InventoryBuilder;
 import com.gungens.generators.libs.ItemUtils;
 import com.gungens.generators.libs.MessageUtils;
 import com.gungens.generators.libs.Register;
 import com.gungens.generators.managers.HologramManager;
+import com.gungens.generators.models.BreakableGenerator;
 import com.gungens.generators.models.Generator;
 import com.gungens.generators.models.GeneratorUIItems;
 import com.gungens.generators.services.GeneratorService;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -27,14 +27,20 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
+import static com.gungens.generators.libs.CentralKeys.BREAKABLE_GEN_ID;
 import static com.gungens.generators.libs.CentralKeys.GEN_ID;
 
 @Register
 public class GeneratorListeners implements Listener {
+
+    private static final Logger log = LoggerFactory.getLogger(GeneratorListeners.class);
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
@@ -54,12 +60,22 @@ public class GeneratorListeners implements Listener {
         if (!meta.getDisplayName().toLowerCase().endsWith("generator")) {
             return;
         }
-        if (!meta.getPersistentDataContainer().has(GEN_ID, PersistentDataType.STRING)) {
+        if (!meta.getPersistentDataContainer().has(GEN_ID, PersistentDataType.STRING) && !meta.getPersistentDataContainer().has(BREAKABLE_GEN_ID, PersistentDataType.STRING)) {
             p.sendMessage(utils.format("&cFailed to create generator: block is not a generator"));
             return;
         }
 
 
+        if (isDropperGenerator(item)) {
+            setupDropperGenerator(item, block);
+        } else {
+            setupBreakableGenerator(item, block);
+        }
+        p.getInventory().removeItem(item);
+        p.sendMessage(utils.format("&aPlaced generator"));
+    }
+
+    private static void setupDropperGenerator(ItemStack item, Block block) {
         PersistentDataContainer container = item.getItemMeta().getPersistentDataContainer();
         String id = container.get(GEN_ID, PersistentDataType.STRING);
         Generator generator = GeneratorCache.instance.getGeneratorById(id);
@@ -74,8 +90,29 @@ public class GeneratorListeners implements Listener {
             generator.setLocation(block.getLocation());
             GeneratorCache.instance.updateGenerator(generator);
         }
-        p.getInventory().removeItem(item);
-        p.sendMessage(utils.format("&aPlaced generator"));
+    }
+    private void setupBreakableGenerator(ItemStack item, Block block) {
+        PersistentDataContainer container = item.getItemMeta().getPersistentDataContainer();
+        String id = container.get(BREAKABLE_GEN_ID, PersistentDataType.STRING);
+        BreakableGenerator generator = BreakableGeneratorCache.instance.getBreakableGeneratorById(id);
+        Gson gson = new Gson();
+        if (generator == null) {
+            BreakableGenerator newGenerator = new BreakableGenerator(item.getType());
+            newGenerator.setLocation(block.getLocation());
+            ItemStack dropItem = ItemUtils.instance.createDropItem();
+            newGenerator.addItemToDrop(dropItem);
+            log.info("New generator created: {}", gson.toJson(newGenerator, BreakableGenerator.class));
+            BreakableGeneratorCache.instance.addBreakableGenerator(newGenerator, false);
+
+        } else {
+            generator.setLocation(block.getLocation());
+            BreakableGeneratorCache.instance.updateBreakableGenerator(generator);
+        }
+
+    }
+    private boolean isDropperGenerator(ItemStack item) {
+        PersistentDataContainer container = item.getItemMeta().getPersistentDataContainer();
+        return container.has(GEN_ID, PersistentDataType.STRING);
     }
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
@@ -115,6 +152,14 @@ public class GeneratorListeners implements Listener {
                     .build();
 
             p.openInventory(inventory);
+        } else if (BreakableGeneratorCache.instance.containsLocation(location)) {
+            event.setCancelled(true);
+            Player p = event.getPlayer();
+            MessageUtils utils = MessageUtils.instance;
+            World world = block.getWorld();
+            BreakableGenerator generator = BreakableGeneratorCache.instance.getBreakableGeneratorFromLocation(location);
+            GeneratorService.getInstance().spawnItem(generator);
+
         }
     }
     @EventHandler
@@ -208,6 +253,15 @@ public class GeneratorListeners implements Listener {
                 });
                 Inventory inventory = builder.build();
 
+                player.openInventory(inventory);
+            } else if (BreakableGeneratorCache.instance.containsLocation(block.getLocation())) {
+                if (!player.hasPermission("generators.admin")) {
+                    return;
+                }
+                BreakableGenerator generator = BreakableGeneratorCache.instance.getBreakableGeneratorFromLocation(block.getLocation());
+                event.setCancelled(true);
+                InventoryBuilder builder = new InventoryBuilder(9*4, utils.format("&6&lITEM EDITOR"));
+                Inventory inventory = builder.build();
                 player.openInventory(inventory);
             }
         }

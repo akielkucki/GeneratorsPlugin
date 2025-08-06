@@ -5,4 +5,5 @@ import org.bukkit.NamespacedKey;
 
 public class CentralKeys {
     public static final NamespacedKey GEN_ID = new NamespacedKey(Generators.instance, "gen_id");
+    public static final NamespacedKey BREAKABLE_GEN_ID = new NamespacedKey(Generators.instance, "breakable_gen_id");
 }

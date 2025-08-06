@@ -1,6 +1,7 @@
 package com.gungens.generators.tasks;
 
 import com.gungens.generators.Generators;
+import com.gungens.generators.cache.BreakableGeneratorCache;
 import com.gungens.generators.cache.GeneratorCache;
 import com.gungens.generators.db.DbManager;
 import com.gungens.generators.libs.MessageUtils;
@@ -19,18 +20,20 @@ public class DirtyGeneratorSync implements Runnable {
     @Override
     public void run() {
         if (GeneratorCache.instance.getRemovedGenerators().isEmpty() &&
-                GeneratorCache.instance.getDirtyGenerators().isEmpty()) {
+                GeneratorCache.instance.getDirtyGenerators().isEmpty()
+                && BreakableGeneratorCache.instance.getDirtyBreakableGenerators().isEmpty() && BreakableGeneratorCache.instance.getRemovedBreakableGenerators().isEmpty()) {
             saved = false;
-            return;
+        } else {
+            try {
+                dbManager.flushDirtyGenerators();
+            } catch (SQLException e) {
+                Bukkit.getLogger().log(Level.SEVERE, e.getMessage());
+            }
+            saved = true;
+            if (Generators.instance.getConfig().getBoolean("database_logging")) {
+                sendMessage();
+            }
         }
-
-        try {
-            dbManager.flushDirtyGenerators();
-        } catch (SQLException e) {
-            Bukkit.getLogger().log(Level.SEVERE, e.getMessage());
-        }
-        saved = true;
-        sendMessage();
     }
     private void sendMessage() {
         for (Player player : Bukkit.getOnlinePlayers()) {

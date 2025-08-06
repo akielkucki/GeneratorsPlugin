@@ -11,6 +11,11 @@ commands:
     usage: /generator <block>
     permission: generators.admin
     permission-message: §cYou do not have permission to use this command.
+  breakablegenerator:
+    description: Creates a new generator block.
+    usage: /generator <block>
+    permission: generators.admin
+    permission-message: §cYou do not have permission to use this command.
 
   savegenerators:
     description: Saves all generators to the database.

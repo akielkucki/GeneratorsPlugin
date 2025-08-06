@@ -1,5 +1,6 @@
 package com.gungens.generators.libs;
 
+import com.gungens.generators.models.BreakableGenerator;
 import com.gungens.generators.models.Generator;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -9,6 +10,7 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.gungens.generators.libs.CentralKeys.BREAKABLE_GEN_ID;
 import static com.gungens.generators.libs.CentralKeys.GEN_ID;
 
 public class ItemUtils {
@@ -31,6 +33,26 @@ public class ItemUtils {
         generatorBlock.setItemMeta(meta);
         return generatorBlock;
     }
+    public ItemStack createBreakableGeneratorItem(Material material, String ownerName, BreakableGenerator generator) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+
+        String displayName = utils.format("&6" + utils.capitalizeFirstLetter(material.name().toLowerCase().replace("_", " ")) + " Breakable Generator");
+        meta.setDisplayName(displayName);
+
+        List<String> lore = new ArrayList<>();
+        lore.add(utils.format("&7Owner: &a" + ownerName));
+        lore.add(utils.format("&7Type: &eBreakable Generator"));
+        lore.add(utils.format("&7ID: &f" + generator.getId()));
+        meta.setLore(lore);
+
+        // Set persistent data for identification
+        meta.getPersistentDataContainer().set(BREAKABLE_GEN_ID, PersistentDataType.STRING, generator.getId());
+
+        item.setItemMeta(meta);
+        return item;
+    }
+
     public ItemStack createDropItem() {
         ItemStack dropItem = new ItemStack(Material.STONE);
         ItemMeta dropItemMeta = dropItem.getItemMeta();
