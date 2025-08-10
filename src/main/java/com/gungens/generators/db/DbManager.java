@@ -29,7 +29,7 @@ public class DbManager {
     private Dao<BreakableGenerator, String> breakableGeneratorDao;
     @SuppressWarnings("all")
     public DbManager() {
-        String DATABASE_URL = "jdbc:postgresql://147.135.31.124:5432/gungens?user=gungens&password=Buildcr33k*";
+        String DATABASE_URL = ""; // will change to config.getString()
         File dbFile = new File(Generators.instance.getDataFolder().getAbsolutePath()+"/database.db");
 
         try {
