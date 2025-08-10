@@ -13,6 +13,7 @@ public class HologramManager {
     // Maps to track hologram entity UUIDs by generator ID
     private final Map<String, UUID> nameHolograms = new HashMap<>();
     private final Map<String, UUID> progressHolograms = new HashMap<>();
+    private final Map<String, UUID> healthHolograms = new HashMap<>();
 
     // Maps to track hologram settings
     private final Map<String, Boolean> generatorHasHologram = new HashMap<>();
@@ -133,10 +134,39 @@ public class HologramManager {
     }
 
     /**
+     * Stores the UUID of a health hologram for a breakable generator
+     */
+    public void setHealthHologram(String generatorId, UUID hologramUuid) {
+        healthHolograms.put(generatorId, hologramUuid);
+    }
+
+    /**
+     * Gets the UUID of a health hologram for a breakable generator
+     */
+    public UUID getHealthHologram(String generatorId) {
+        return healthHolograms.get(generatorId);
+    }
+
+    /**
+     * Checks if a breakable generator has a health hologram entity
+     */
+    public boolean hasHealthHologramEntity(String generatorId) {
+        return healthHolograms.containsKey(generatorId);
+    }
+
+    /**
+     * Removes a health hologram from tracking
+     */
+    public void removeHealthHologram(String generatorId) {
+        healthHolograms.remove(generatorId);
+    }
+
+    /**
      * Clear all hologram entries
      */
     public void clearAll() {
         nameHolograms.clear();
         progressHolograms.clear();
+        healthHolograms.clear();
     }
 }

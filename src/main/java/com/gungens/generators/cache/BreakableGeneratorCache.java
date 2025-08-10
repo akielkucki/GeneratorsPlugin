@@ -1,15 +1,25 @@
 package com.gungens.generators.cache;
 
+import com.gungens.generators.Generators;
+import com.gungens.generators.db.DbManager;
+import com.gungens.generators.libs.InventoryBuilder;
 import com.gungens.generators.models.BreakableGenerator;
+import com.gungens.generators.models.CommandState;
+import com.gungens.generators.models.Generator;
+import com.gungens.generators.models.PlayerQueueTrack;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.*;
 
 public class BreakableGeneratorCache {
     public static final BreakableGeneratorCache instance = new BreakableGeneratorCache();
+    private static final Logger log = LoggerFactory.getLogger(BreakableGeneratorCache.class);
 
     /**
      * Maps breakable generator IDs to their instances
@@ -39,6 +49,9 @@ public class BreakableGeneratorCache {
     public BreakableGenerator getBreakableGeneratorById(String id) {
         return breakableGenerators.get(id);
     }
+    private final Map<String, PlayerQueueTrack> playerChatCommandQueue = new HashMap<>();
+    private final Map<String, InventoryBuilder> currentInventoryTrack = new HashMap<>();
+    private final Map<String, String> currentGeneratorTrack = new HashMap<>();
 
     /**
      * Adds a breakable generator to the cache
@@ -48,13 +61,8 @@ public class BreakableGeneratorCache {
             Bukkit.getLogger().warning("No location provided when adding a breakable generator!");
             return;
         }
-
-        Location location = generator.getLocation();
-        if (generator.getBlockType() == null) {
-            Block block = location.getBlock();
-            generator.setBlockType(block.getType());
-        }
-
+        generator.setDropItems(generator.getDropItems());
+        generator.getLocation().getBlock().setType(Material.valueOf(generator.getBlockTypeName()));
         breakableGenerators.put(generator.getId(), generator);
         locations.put(generator.getLocation(), generator.getId());
 
@@ -80,6 +88,11 @@ public class BreakableGeneratorCache {
         locations.remove(generator.getLocation());
         dirtyBreakableGenerators.remove(generator.getId());
         removedBreakableGenerators.add(generator.getId());
+        try {
+            Generators.instance.getDbManager().flushDirtyGenerators();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -184,5 +197,38 @@ public class BreakableGeneratorCache {
 
     public BreakableGenerator getGeneratorById(String id) {
         return breakableGenerators.get(id);
+    }
+    public void addPlayerToQueue(String uuid, InventoryBuilder builder, String generatorId, String commandName) {
+        playerChatCommandQueue.put(uuid, new PlayerQueueTrack(commandName));
+        currentInventoryTrack.put(uuid,builder);
+        currentGeneratorTrack.put(uuid,generatorId);
+    }
+    public PlayerQueueTrack getPlayerCommandQueueState(String uuid) {
+        return playerChatCommandQueue.get(uuid);
+    }
+    public void removePlayerFromQueue(String uuid) {
+        playerChatCommandQueue.remove(uuid);
+        currentInventoryTrack.remove(uuid);
+        currentGeneratorTrack.remove(uuid);
+    }
+    public void setPlayerCommandQueueState(String uuid, CommandState state, double interval) {
+        PlayerQueueTrack track = playerChatCommandQueue.get(uuid);
+        track.setState(state, interval);
+    }
+    public InventoryBuilder getCurrentInventoryTrack(String uuid) {
+        return currentInventoryTrack.get(uuid);
+    }
+    public String getCurrentGeneratorTrack(String uuid) {
+        return currentGeneratorTrack.get(uuid);
+    }
+
+    public boolean isInCommandQueue(String uuid) {
+        return playerChatCommandQueue.containsKey(uuid);
+    }
+
+    public void updateGenerator(BreakableGenerator breakableGenerator) {
+        breakableGenerators.put(breakableGenerator.getId(), breakableGenerator);
+        locations.put(breakableGenerator.getLocation(), breakableGenerator.getId());
+        dirtyBreakableGenerators.add(breakableGenerator.getId());
     }
 }

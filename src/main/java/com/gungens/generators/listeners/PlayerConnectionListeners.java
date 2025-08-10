@@ -19,6 +19,7 @@ public class PlayerConnectionListeners implements Listener {
                 int taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(Generators.instance, new GeneratorTask(), 0L, 1L);
                 Generators.instance.setTaskId(taskId);
                 Bukkit.getLogger().info("[Generators] Started generator task.");
+
             }
         }
     }

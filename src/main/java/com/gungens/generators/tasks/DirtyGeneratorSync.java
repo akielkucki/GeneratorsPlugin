@@ -9,40 +9,55 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.sql.SQLException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class DirtyGeneratorSync implements Runnable {
-    final DbManager dbManager = Generators.instance.getDbManager();
-    private boolean saved;
-    public DirtyGeneratorSync() {
-        saved = false;
-    }
+    private final DbManager dbManager = Generators.instance.getDbManager();
+    private volatile boolean saved;
+    private long lastLogNanos = 0L;
+    private static final long LOG_COOLDOWN = TimeUnit.SECONDS.toNanos(10);
+
     @Override
     public void run() {
-        if (GeneratorCache.instance.getRemovedGenerators().isEmpty() &&
-                GeneratorCache.instance.getDirtyGenerators().isEmpty()
-                && BreakableGeneratorCache.instance.getDirtyBreakableGenerators().isEmpty() && BreakableGeneratorCache.instance.getRemovedBreakableGenerators().isEmpty()) {
-            saved = false;
-        } else {
-            try {
-                dbManager.flushDirtyGenerators();
-            } catch (SQLException e) {
-                Bukkit.getLogger().log(Level.SEVERE, e.getMessage());
-            }
+        // snapshot counts before flush (db flush is expected to clear caches)
+        int gDirty = GeneratorCache.instance.getDirtyGenerators().size();
+        int gRemoved = GeneratorCache.instance.getRemovedGenerators().size();
+        int bDirty = BreakableGeneratorCache.instance.getDirtyBreakableGenerators().size();
+        int bRemoved = BreakableGeneratorCache.instance.getRemovedBreakableGenerators().size();
+
+        int total = gDirty + gRemoved + bDirty + bRemoved;
+        if (total == 0) { saved = false; return; }
+
+        try {
+            dbManager.flushDirtyGenerators();
             saved = true;
             if (Generators.instance.getConfig().getBoolean("database_logging")) {
-                sendMessage();
+                maybeNotifyAdmins(gDirty, gRemoved, bDirty, bRemoved);
             }
+        } catch (SQLException e) {
+            saved = false;
+            Generators.instance.getLogger().log(Level.SEVERE, "Failed to flush dirty generators", e);
         }
     }
-    private void sendMessage() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.hasPermission("generators.logs")) {
-                player.sendMessage(MessageUtils.instance.format("&7&oSaving generator data..."));
+
+    private void maybeNotifyAdmins(int gDirty, int gRemoved, int bDirty, int bRemoved) {
+        long now = System.nanoTime();
+        if (now - lastLogNanos < LOG_COOLDOWN) return;
+        lastLogNanos = now;
+
+        String msg = MessageUtils.instance.format(
+                String.format("&7&oSaving generator data... &8G[d=%d r=%d] BG[d=%d r=%d]",
+                        gDirty, gRemoved, bDirty, bRemoved)
+        );
+
+        // Bounce to main thread (Bukkit API is not thread-safe from async tasks)
+        Bukkit.getScheduler().runTask(Generators.instance, () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (p.hasPermission("generators.logs")) p.sendMessage(msg);
             }
-        }
+        });
     }
-    public boolean isSaved() {
-        return saved;
-    }
+
+    public boolean isSaved() { return saved; }
 }

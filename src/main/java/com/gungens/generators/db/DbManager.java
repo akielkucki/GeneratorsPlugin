@@ -5,12 +5,14 @@ import com.gungens.generators.cache.BreakableGeneratorCache;
 import com.gungens.generators.cache.GeneratorCache;
 import com.gungens.generators.models.BreakableGenerator;
 import com.gungens.generators.models.Generator;
+import com.gungens.generators.services.GeneratorService;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +29,7 @@ public class DbManager {
     private Dao<BreakableGenerator, String> breakableGeneratorDao;
     @SuppressWarnings("all")
     public DbManager() {
-        String DATABASE_URL = "jdbc:sqlite:" + Generators.instance.getDataFolder().getAbsolutePath() + "/database.db";
+        String DATABASE_URL = "jdbc:postgresql://147.135.31.124:5432/gungens?user=gungens&password=Buildcr33k*";
         File dbFile = new File(Generators.instance.getDataFolder().getAbsolutePath()+"/database.db");
 
         try {
@@ -61,6 +63,11 @@ public class DbManager {
 
         BreakableGeneratorCache breakableGeneratorCache = BreakableGeneratorCache.instance;
         breakableGeneratorCache.addAll(breakableGeneratorDao.queryForAll());
+        for (BreakableGenerator breakableGenerator : breakableGeneratorCache.getBreakableGenerators()) {
+            breakableGenerator.setHealth(breakableGenerator.getMaxHealth());
+            breakableGenerator.setBlockType(Material.valueOf(breakableGenerator.getBlockTypeName()));
+            GeneratorService.getInstance().spawnHealthBarIfNotPresent(breakableGenerator);
+        }
     }
 
     public void flushDirtyGenerators() throws SQLException {
@@ -78,7 +85,17 @@ public class DbManager {
             Generator gen = cache.getGeneratorById(id);
             if (gen != null) {
                 gen.setDropItems(gen.getDropItems());
-                generatorDao.createOrUpdate(gen);
+                gen.setBlockType(Material.valueOf(gen.getBlockTypeName()));
+                gen.getLocation().getBlock().setType(gen.getBlockType());
+                try {
+                    generatorDao.createOrUpdate(gen);
+                } catch (Exception e) {
+                    Throwable root = e;
+                    while (root.getCause() != null) root = root.getCause();
+                    Bukkit.getLogger().log(Level.SEVERE, "Insert failed, root cause: " + root.getMessage(), root);
+                    throw e;
+                }
+
                 dirtyGenerators.remove(id);
             }
         }
@@ -92,11 +109,15 @@ public class DbManager {
             log.info("Updating breakable generator: {}", id);
             if (breakableGenerator != null) {
                 breakableGenerator.setDropItems(breakableGenerator.getDropItems());
+                breakableGenerator.setHealth(breakableGenerator.getMaxHealth());
+                breakableGenerator.setBlockType(breakableGenerator.getLocation().getBlock().getType() );
                 breakableGeneratorDao.createOrUpdate(breakableGenerator);
                 dirtyBreakableGenerators.remove(id);
             }
         }
-        for (String id : new HashSet<>(removedBreakableGenerators)) {
+        for (String id : removedBreakableGenerators) {
+            log.info("Removing breakable generator: {}", id);
+
             breakableGeneratorDao.deleteById(id);
             removedBreakableGenerators.remove(id);
         }

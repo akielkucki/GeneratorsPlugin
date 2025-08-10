@@ -1,6 +1,7 @@
 package com.gungens.generators.services;
 
 import com.gungens.generators.Generators;
+import com.gungens.generators.libs.ItemUtils;
 import com.gungens.generators.libs.MessageUtils;
 import com.gungens.generators.managers.HologramManager;
 import com.gungens.generators.models.BreakableGenerator;
@@ -11,12 +12,17 @@ import org.bukkit.inventory.ItemStack;
 
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 
 public class GeneratorService {
     private static final GeneratorService instance = new GeneratorService();
+    private static final Logger log = LoggerFactory.getLogger(GeneratorService.class);
 
     public static GeneratorService getInstance() {
 
@@ -155,13 +161,94 @@ public class GeneratorService {
         return progressBar.toString();
     }
 
+
+    public void spawnHealthBarIfNotPresent(BreakableGenerator breakableGenerator) {
+        Location location = breakableGenerator.getLocation();
+        if (location == null) {
+            return;
+        }
+        if (!breakableGenerator.isNameVisible()) {
+            try {
+                removeHologram(breakableGenerator.getId(), true, false);
+            } catch (Exception e) {
+                log.warn("Error removing name hologram for generator {}",e.getMessage());
+            }
+            return;
+        }
+        // Create name hologram above health
+        Location nameLoc = location.clone().add(0.5, 1.2, 0.5);
+        String nameDisplay = createNameDisplay(breakableGenerator);
+
+        if (HologramManager.instance.hasNameHologramEntity(breakableGenerator.getId())) {
+            ArmorStand nameStand = getArmorStand(HologramManager.instance.getNameHologram(breakableGenerator.getId()));
+            if (nameStand != null) {
+                // Always update the name display
+                nameStand.setCustomName(nameDisplay);
+            } else {
+                // If the armor stand is null, remove it from tracking and create a new one
+                HologramManager.instance.removeNameHologram(breakableGenerator.getId());
+                ArmorStand newNameStand = (ArmorStand) location.getWorld().spawnEntity(nameLoc, EntityType.ARMOR_STAND);
+                setupHologramEntity(newNameStand);
+                newNameStand.setCustomName(nameDisplay);
+                HologramManager.instance.setNameHologram(breakableGenerator.getId(), newNameStand.getUniqueId());
+            }
+        } else {
+            // Create new name hologram
+            ArmorStand nameStand = (ArmorStand) location.getWorld().spawnEntity(nameLoc, EntityType.ARMOR_STAND);
+            setupHologramEntity(nameStand);
+            nameStand.setCustomName(nameDisplay);
+            HologramManager.instance.setNameHologram(breakableGenerator.getId(), nameStand.getUniqueId());
+        }
+        if (breakableGenerator.getMaxHealth() <= 1) {
+            return;
+        }
+        Location healthLoc = location.clone().add(0.5, 0.9, 0.5);
+        String healthDisplay = createHealthDisplay(breakableGenerator);
+
+        if (HologramManager.instance.hasHealthHologramEntity(breakableGenerator.getId())) {
+            ArmorStand healthStand = getArmorStand(HologramManager.instance.getHealthHologram(breakableGenerator.getId()));
+            if (healthStand != null) {
+                // Always update the health display
+                healthStand.setCustomName(healthDisplay);
+                return;
+            }
+            // If the armor stand is null, remove it from tracking and create a new one
+            HologramManager.instance.removeHealthHologram(breakableGenerator.getId());
+        }
+
+        // Create new health hologram
+        ArmorStand healthStand = (ArmorStand) location.getWorld().spawnEntity(healthLoc, EntityType.ARMOR_STAND);
+        setupHologramEntity(healthStand);
+        healthStand.setCustomName(healthDisplay);
+        HologramManager.instance.setHealthHologram(breakableGenerator.getId(), healthStand.getUniqueId());
+    }
+
+    private String createNameDisplay(BreakableGenerator breakableGenerator) {
+        List<ItemStack> items = breakableGenerator.getDropItems();
+        if (items == null || items.isEmpty()) {
+            return MessageUtils.instance.format("&6Breakable Ore");
+        }
+        ItemStack item = items.get(0);
+        if (item.hasItemMeta() && item.getItemMeta().hasDisplayName()) {
+            return MessageUtils.instance.format("&6" + item.getItemMeta().getDisplayName() + " Ore");
+        } else {
+            String itemType = item.getType().name().toLowerCase().replace("_", " ");
+            return MessageUtils.instance.format("&6" + MessageUtils.instance.capitalizeFirstLetter(itemType) + " Ore");
+        }
+    }
+
+
+    private String createHealthDisplay(BreakableGenerator breakableGenerator) {
+        double health = breakableGenerator.getHealth();
+        return MessageUtils.instance.format("&c❤ " + health);
+    }
     private void setupHologramEntity(ArmorStand stand) {
         stand.setVisible(false);
         stand.setGravity(false);
         stand.setInvulnerable(true);
         stand.setCustomNameVisible(true);
         stand.setMarker(true);
-        stand.getPersistentDataContainer().set(new NamespacedKey(Generators.instance, "hologram"), PersistentDataType.STRING, UUID.randomUUID().toString());
+        stand.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(Generators.instance, "hologram"), PersistentDataType.STRING, UUID.randomUUID().toString());
     }
 
     private ArmorStand getArmorStand(UUID uuid) {
@@ -213,5 +300,27 @@ public class GeneratorService {
 
         HologramManager.instance.clearAll();
         Bukkit.getLogger().info("Cleared existing armor stands used for holograms");
+    }
+
+    public void addItemToPlayer(BreakableGenerator breakableGenerator, Player p) {
+        Location location = breakableGenerator.getLocation();
+        ItemStack dropItem = breakableGenerator.getDropItems().get(breakableGenerator.getIndex());
+        if (location == null) {
+            return;
+        }
+        if (dropItem == null) {
+            Bukkit.getLogger().log(Level.SEVERE, "Item at generator " + breakableGenerator.getId() + " is null!");
+            return;
+        }
+
+        Location spawnLoc = location.clone().add(0.5, 1.2, 0.5);
+        if (p.getInventory().firstEmpty() == -1) {
+            p.sendMessage(MessageUtils.instance.format("&cYour inventory is full!"));
+            spawnItem(breakableGenerator);
+            return;
+        }
+        p.getInventory().addItem(dropItem);
+
+        breakableGenerator.setIndex();
     }
 }

@@ -3,6 +3,7 @@ package com.gungens.generators;
 import com.gungens.generators.cache.GeneratorCache;
 import com.gungens.generators.commands.BreakableGeneratorCommand;
 import com.gungens.generators.commands.GeneratorCommand;
+import com.gungens.generators.commands.ReloadAll;
 import com.gungens.generators.commands.SaveGeneratorsCommand;
 import com.gungens.generators.db.DbManager;
 import com.gungens.generators.libs.Register;
@@ -47,6 +48,7 @@ public final class Generators extends JavaPlugin {
 
         getCommand("generator").setExecutor(new GeneratorCommand());
         getCommand("breakablegenerator").setExecutor(new BreakableGeneratorCommand());
+        getCommand("reloadgenerators").setExecutor(new ReloadAll());
 
         getCommand("savegenerators").setExecutor(new SaveGeneratorsCommand());
         if (Bukkit.getOnlinePlayers().isEmpty()) {

@@ -2,6 +2,7 @@
 package com.gungens.generators.models;
 
 import com.gungens.generators.libs.GeneratorUtils;
+import com.gungens.generators.services.GeneratorService;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -35,9 +36,11 @@ public class BreakableGenerator {
     @DatabaseField(columnName = "drop_items")
     private String dropItemsSerialized;
 
-    private transient List<ItemStack> dropItems;
+    private transient List<ItemStack> dropItems = new ArrayList<>();
     @DatabaseField(columnName = "owner_uuid")
     private String ownerUUID;
+    @DatabaseField(columnName = "block_type", dataType = DataType.STRING)
+    private String blockTypeName;
 
     private transient Material blockType;
 
@@ -45,6 +48,13 @@ public class BreakableGenerator {
     private boolean isGlowing;
     @DatabaseField(columnName = "nameVisible", dataType = DataType.BOOLEAN)
     private boolean nameVisible;
+    @DatabaseField(columnName = "reset_time")
+    private double resetTime = 5.0;
+    @DatabaseField(columnName = "max_health")
+    private double maxHealth = 0.0;
+
+    private transient double health = 0;
+
 
     // Progress tracking for breakable generators
     private transient long lastActionTime;
@@ -62,6 +72,7 @@ public class BreakableGenerator {
         this.blockType = blockType;
         this.isGlowing = false;
         this.dropItems = new ArrayList<>();
+        this.maxHealth = 0.0;
     }
 
     public int getIndex() {
@@ -157,6 +168,13 @@ public class BreakableGenerator {
     public void setNameVisible(boolean nameVisible) {
         this.nameVisible = nameVisible;
     }
+    public double getResetTime() {
+        return resetTime;
+    }
+
+    public void setResetTime(double resetTime) {
+        this.resetTime = resetTime;
+    }
 
     // Location serialization methods
     public static String serializeLocation(Location location) {
@@ -205,5 +223,30 @@ public class BreakableGenerator {
     public void setDropItems(List<ItemStack> dropItems) {
         this.dropItems = dropItems;
         this.dropItemsSerialized = GeneratorUtils.serializeItemStacks(dropItems);
+    }
+
+    public double getHealth() {
+        return this.health;
+    }
+    public void setHealth(double health) {
+        this.health = health;
+    }
+    public double getMaxHealth() {
+        return this.maxHealth;
+    }
+    public void setMaxHealth(double maxHealth) {
+        this.maxHealth = maxHealth;
+    }
+    public void damage(int damage) {
+        this.health -= damage;
+        GeneratorService.getInstance().spawnHealthBarIfNotPresent(this);
+
+    }
+
+    public void setBlockTypeName(String name) {
+        this.blockTypeName = name;
+    }
+    public String getBlockTypeName() {
+        return this.blockTypeName;
     }
 }

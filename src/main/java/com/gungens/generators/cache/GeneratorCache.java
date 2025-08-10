@@ -6,12 +6,16 @@ import com.gungens.generators.models.Generator;
 import com.gungens.generators.models.PlayerQueueTrack;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class GeneratorCache {
     public static final GeneratorCache instance = new GeneratorCache();
+    private static final Logger log = LoggerFactory.getLogger(GeneratorCache.class);
     /**
      */
     private final Map<String, Generator> generators = new HashMap<>();
@@ -57,11 +61,8 @@ public class GeneratorCache {
             Bukkit.getLogger().warning("No location provided when adding a generator!");
             return;
         }
-        Location location = generator.getLocation();
-        if (generator.getBlockType() == null) {
-            Block block = location.getBlock();
-            generator.setBlockType(block.getType());
-        }
+        generator.getLocation().getBlock().setType(Material.valueOf(generator.getBlockTypeName()));
+
         generators.put(generator.getId(), generator);
         locations.put(generator.getLocation(), generator.getId());
         if (!loadOperation) {
@@ -102,15 +103,17 @@ public class GeneratorCache {
 
     public void addAll(List<Generator> generators) {
         for (Generator generator : generators) {
-
+            generator.setBlockType( Material.valueOf( generator.getBlockTypeName() ) );
+            generator.getLocation().getBlock().setType(generator.getBlockType());
+            log.info("Adding generator {} {}", generator.getLocation().toString(), generator.getBlockType());
             addGenerator(generator, true);
         }
 
        Bukkit.getLogger().info("Added " + generators.size() + " generators to the cache");
     }
 
-    public void addPlayerToQueue(String uuid, InventoryBuilder builder, String generatorId) {
-        playerChatCommandQueue.put(uuid, new PlayerQueueTrack());
+    public void addPlayerToQueue(String uuid, InventoryBuilder builder, String generatorId, String commandName) {
+        playerChatCommandQueue.put(uuid, new PlayerQueueTrack(commandName));
         currentInventoryTrack.put(uuid,builder);
         currentGeneratorTrack.put(uuid,generatorId);
     }
@@ -202,5 +205,10 @@ public class GeneratorCache {
     public void setGeneratorVisuals(String generatorId, boolean enabled) {
         setGeneratorHologram(generatorId, enabled);
         setGeneratorProgressBar(generatorId, enabled);
+    }
+
+    public void clearDirtyAndRemoved() {
+        dirtyGenerators.clear();
+        removedGenerators.clear();
     }
 }

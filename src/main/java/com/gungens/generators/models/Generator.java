@@ -49,7 +49,10 @@ public class Generator {
 
     @DatabaseField(columnName = "owner_uuid")
     private String ownerUUID;
-    private Material blockType;
+    @DatabaseField(columnName = "block_type", dataType = DataType.STRING)
+    private String blockTypeName;
+
+    private transient Material blockType;
 
     private int lastDropIndex = -1;
 
@@ -229,8 +232,12 @@ public class Generator {
         return new Location(world, x, y, z);
     }
 
-
-
+    public void setBlockTypeName(String name) {
+        this.blockTypeName = name;
+    }
+    public String getBlockTypeName() {
+        return this.blockTypeName;
+    }
 
     public boolean isHologramVisible() {
         return isHologramVisible;
